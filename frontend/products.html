@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo | FloriLuz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="promo-strip">✨ Envío <strong>gratis</strong> en pedidos sobre $50 · Lámparas artesanales únicas 🌸</div>
+
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">
+            <div class="logo-icon">🌸</div>
+            FloriLuz
+        </a>
+        <ul class="navbar-links" id="nav-links">
+            <li><a href="index.html">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    Inicio
+                </a></li>
+            <li><a href="products.html" class="active">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    Catálogo
+                </a></li>
+            <li>
+                <a href="cart.html" class="nav-cart">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1" />
+                        <circle cx="20" cy="21" r="1" />
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                    </svg>
+                    Carrito
+                    <span class="cart-badge" id="cart-count">0</span>
+                </a>
+            </li>
+        </ul>
+        <button class="nav-toggle" id="nav-toggle"><span></span><span></span><span></span></button>
+    </nav>
+
+    <section class="section">
+        <div class="section-header">
+            <div class="section-label">Toda la colección</div>
+            <h1 class="section-title">Catálogo <em>Floral</em></h1>
+            <p class="section-sub">Lámparas artesanales inspiradas en la belleza de las flores</p>
+        </div>
+
+        <div class="categories-tabs">
+            <button class="cat-tab active" onclick="filterProducts(this,'')">🌸 Todas</button>
+            <button class="cat-tab" onclick="filterProducts(this,'rosa')">🌹 Rosas</button>
+            <button class="cat-tab" onclick="filterProducts(this,'girasol')">🌻 Girasoles</button>
+            <button class="cat-tab" onclick="filterProducts(this,'loto')">🪷 Lotos</button>
+            <button class="cat-tab" onclick="filterProducts(this,'margarita')">🌼 Margaritas</button>
+        </div>
+
+        <div class="products-grid" id="products-grid">
+            <div class="loading-state" style="grid-column:1/-1">
+                <div class="loading-spinner"></div>Cargando catálogo...
+            </div>
+        </div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+
+    <footer class="footer">
+        <p>🌸 <strong>FloriLuz</strong> — Lámparas Florales Artesanales</p>
+        <p class="footer-sub">Proyecto E-commerce en Go · Tercer Semestre · 2024</p>
+    </footer>
+
+    <script>
+        const API = 'http://localhost:8080/api';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProducts(); loadCartCount();
+            const toggle = document.getElementById('nav-toggle');
+            const links = document.getElementById('nav-links');
+            toggle.addEventListener('click', () => {
+                links.classList.toggle('open');
+                toggle.classList.toggle('open');
+            });
+        });
+
+        async function loadProducts(category = '') {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = '<div class="loading-state" style="grid-column:1/-1"><div class="loading-spinner"></div>Cargando...</div>';
+            try {
+                const url = category ? `${API}/products?category=${category}` : `${API}/products`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error);
+                const products = json.data || [];
+                if (!products.length) {
+                    grid.innerHTML = '<div class="loading-state" style="grid-column:1/-1">Sin productos en esta categoría 🌸</div>';
+                    return;
+                }
+                grid.innerHTML = products.map(renderCard).join('');
+            } catch (e) {
+                grid.innerHTML = `<div class="loading-state" style="grid-column:1/-1;color:#c0392b">
+      Error al conectar con el servidor.<br>
+      <small style="opacity:.7">¿Está corriendo <code>go run main.go</code>?</small>
+    </div>`;
+            }
+        }
+
+        function renderCard(p) {
+            const em = { rosa: '🌹', girasol: '🌻', loto: '🪷', margarita: '🌼' }[p.category] || '🌸';
+            const lowStock = p.stock > 0 && p.stock <= 3;
+            return `
+    <div class="product-card">
+      <div class="product-img-wrap">
+        ${p.image_url
+                    ? `<img src="${p.image_url}" alt="${p.name}" onerror="this.parentElement.innerHTML='<div class=product-img-fallback>${em}</div>'">`
+                    : `<div class="product-img-fallback">${em}</div>`}
+        <span class="product-badge">${em} ${p.category}</span>
+        ${lowStock ? `<span class="product-badge-low">¡Solo ${p.stock}!</span>` : ''}
+      </div>
+      <div class="product-body">
+        <div class="product-name">${p.name}</div>
+        <div class="product-desc">${p.description}</div>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="chg('q${p.id}',-1)">−</button>
+          <input class="qty-input" id="q${p.id}" type="number" value="1" min="1" max="${p.stock}">
+          <button class="qty-btn" onclick="chg('q${p.id}',1)">+</button>
+        </div>
+        <div class="product-footer-row">
+          <div class="product-price">$${p.price.toFixed(2)}</div>
+          <button class="btn btn-primary btn-sm" onclick="addToCart('${p.id}','q${p.id}')" ${p.stock === 0 ? 'disabled style="opacity:.4"' : ''}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            ${p.stock === 0 ? 'Sin stock' : 'Agregar'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+        }
+
+        function chg(id, d) { const el = document.getElementById(id); el.value = Math.max(1, parseInt(el.value || 1) + d); }
+
+        async function addToCart(pid, qid) {
+            const qty = parseInt(document.getElementById(qid)?.value || 1);
+            try {
+                const res = await fetch(`${API}/cart/add`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product_id: pid, quantity: qty }) });
+                const json = await res.json();
+                if (!json.success) { showToast('❌ ' + json.error, 'error'); return; }
+                document.getElementById('cart-count').textContent = json.data.items.reduce((s, i) => s + i.quantity, 0);
+                showToast('✅ ¡Lámpara agregada!', 'success');
+            } catch (e) { showToast('❌ Error de conexión', 'error'); }
+        }
+
+        function filterProducts(btn, cat) {
+            document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadProducts(cat);
+        }
+
+        async function loadCartCount() {
+            try {
+                const res = await fetch(`${API}/cart`);
+                const json = await res.json();
+                if (json.success && json.data.items)
+                    document.getElementById('cart-count').textContent = json.data.items.reduce((s, i) => s + i.quantity, 0);
+            } catch (e) { }
+        }
+
+        function showToast(msg, type = '') {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.className = `toast ${type} show`;
+            setTimeout(() => { t.className = 'toast'; }, 3200);
+        }
+    </script>
+</body>
+
+</html>
