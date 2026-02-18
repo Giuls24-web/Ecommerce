@@ -72,9 +72,7 @@ func (ci *CartItem) MarshalJSON() ([]byte, error) {
 	)), nil
 }
 
-// ============================================================
-// CLASE Cart — campos privados
-// ============================================================
+// CLASE Cart
 
 type Cart struct {
 	items    []CartItem
@@ -90,8 +88,8 @@ func NewCart() *Cart {
 }
 
 // GETTERS de Cart
-func (c *Cart) GetItems() []CartItem   { return c.items }
-func (c *Cart) GetDiscount() float64   { return c.discount }
+func (c *Cart) GetItems() []CartItem { return c.items }
+func (c *Cart) GetDiscount() float64 { return c.discount }
 
 // SETTER de Cart — el descuento tiene validación
 func (c *Cart) SetDiscount(discount float64) error {
@@ -105,9 +103,7 @@ func (c *Cart) SetDiscount(discount float64) error {
 	return nil
 }
 
-// ============================================================
 // MÉTODOS DE NEGOCIO de Cart
-// ============================================================
 
 // AddItem agrega un producto al carrito con validación de stock
 func (c *Cart) AddItem(product *Product, qty int) error {
@@ -188,7 +184,7 @@ func (c *Cart) ItemCount() int {
 
 // Clear vacía el carrito
 func (c *Cart) Clear() {
-	c.items    = []CartItem{}
+	c.items = []CartItem{}
 	c.discount = 0
 }
 

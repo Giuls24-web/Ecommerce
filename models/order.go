@@ -4,7 +4,6 @@
 // @Curso: 3er Semestre
 // @Carrera: Ingeniería en Software
 
-
 package models
 
 import (
@@ -36,9 +35,7 @@ type Order struct {
 	updatedAt time.Time
 }
 
-// ============================================================
 // CONSTRUCTOR
-// ============================================================
 
 func NewOrder(id string, customer Customer, cart *Cart) (*Order, error) {
 	if id == "" {
@@ -67,9 +64,7 @@ func NewOrder(id string, customer Customer, cart *Cart) (*Order, error) {
 	}, nil
 }
 
-// ============================================================
 // GETTERS — solo lectura
-// ============================================================
 
 func (o *Order) GetID() string           { return o.id }
 func (o *Order) GetCustomer() Customer   { return o.customer }
@@ -80,23 +75,14 @@ func (o *Order) GetNotes() string        { return o.notes }
 func (o *Order) GetCreatedAt() time.Time { return o.createdAt }
 func (o *Order) GetUpdatedAt() time.Time { return o.updatedAt }
 
-// ============================================================
 // SETTERS con validación
-// ============================================================
-
 // SetNotes permite agregar notas a la orden (instrucciones de entrega, etc.)
 func (o *Order) SetNotes(notes string) {
 	o.notes = notes
 	o.updatedAt = time.Now()
 }
 
-// SetStatus es privado — el estado solo cambia a través de los métodos
-// de negocio AdvanceStatus y Cancel, no directamente
-// (no hay setter público para status: es encapsulación intencional)
-
-// ============================================================
 // MÉTODOS DE NEGOCIO — máquina de estados
-// ============================================================
 
 // AdvanceStatus avanza al siguiente estado válido
 func (o *Order) AdvanceStatus() error {
@@ -128,7 +114,7 @@ func (o *Order) Cancel() error {
 	if o.status == StatusCancelled {
 		return errors.New("la orden ya está cancelada")
 	}
-	o.status    = StatusCancelled
+	o.status = StatusCancelled
 	o.updatedAt = time.Now()
 	return nil
 }
@@ -151,9 +137,7 @@ func (o *Order) Summary() string {
 		o.id, o.customer.GetName(), o.total, o.status)
 }
 
-// ============================================================
 // MarshalJSON para serializar campos privados
-// ============================================================
 
 func (o *Order) MarshalJSON() ([]byte, error) {
 	itemsJSON := "["

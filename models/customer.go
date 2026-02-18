@@ -43,9 +43,7 @@ func NewCustomer(name, email, phone, address, city string) (*Customer, error) {
 	return c, nil
 }
 
-// ============================================================
 // GETTERS
-// ============================================================
 
 func (c *Customer) GetName() string    { return c.name }
 func (c *Customer) GetEmail() string   { return c.email }
@@ -53,9 +51,7 @@ func (c *Customer) GetPhone() string   { return c.phone }
 func (c *Customer) GetAddress() string { return c.address }
 func (c *Customer) GetCity() string    { return c.city }
 
-// ============================================================
 // SETTERS con validación
-// ============================================================
 
 func (c *Customer) SetName(name string) error {
 	name = strings.TrimSpace(name)
@@ -102,9 +98,7 @@ func (c *Customer) SetCity(city string) error {
 	return nil
 }
 
-// ============================================================
 // MÉTODOS DE NEGOCIO
-// ============================================================
 
 // Validate verifica que todos los campos obligatorios estén completos
 func (c *Customer) Validate() error {
@@ -128,9 +122,7 @@ func (c *Customer) FullInfo() string {
 	return c.name + " <" + c.email + "> — " + c.address + ", " + c.city
 }
 
-// ============================================================
 // MarshalJSON para serializar campos privados
-// ============================================================
 
 func (c *Customer) MarshalJSON() ([]byte, error) {
 	return []byte(`{"name":"` + c.name + `","email":"` + c.email +
@@ -152,17 +144,17 @@ func (c *Customer) UnmarshalJSON(data []byte) error {
 	// Importamos encoding/json aquí vía interfaz para evitar import circular
 	// Usamos parsing manual simple
 	str := string(data)
-	aux.Name    = extractJSON(str, "name")
-	aux.Email   = extractJSON(str, "email")
-	aux.Phone   = extractJSON(str, "phone")
+	aux.Name = extractJSON(str, "name")
+	aux.Email = extractJSON(str, "email")
+	aux.Phone = extractJSON(str, "phone")
 	aux.Address = extractJSON(str, "address")
-	aux.City    = extractJSON(str, "city")
+	aux.City = extractJSON(str, "city")
 
-	c.name    = aux.Name
-	c.email   = aux.Email
-	c.phone   = aux.Phone
+	c.name = aux.Name
+	c.email = aux.Email
+	c.phone = aux.Phone
 	c.address = aux.Address
-	c.city    = aux.City
+	c.city = aux.City
 	return nil
 }
 

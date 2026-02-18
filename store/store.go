@@ -110,9 +110,7 @@ func (s *Store) ClearCart() {
 	s.cart.Clear()
 }
 
-// ============================================================
 // ÓRDENES
-// ============================================================
 
 func (s *Store) CreateOrder(customer models.Customer) (*models.Order, error) {
 	s.mu.Lock()

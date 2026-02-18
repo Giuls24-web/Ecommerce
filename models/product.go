@@ -4,7 +4,6 @@
 //@Curso: 3er Semestre
 //@Carrera: Ingeniería en Software
 
-
 package models
 
 import (
@@ -22,9 +21,6 @@ const (
 	CategoryDaisy     Category = "margarita"
 )
 
-// Product — todos los campos son PRIVADOS (minúscula)
-// Nadie puede hacer product.price = -99 desde afuera
-// Solo se accede mediante los métodos públicos (getters/setters)
 type Product struct {
 	id          string
 	name        string
@@ -36,9 +32,7 @@ type Product struct {
 	createdAt   time.Time
 }
 
-// ============================================================
 // CONSTRUCTOR
-// ============================================================
 
 func NewProduct(id, name, description string, price float64, stock int, category Category, imageURL string) (*Product, error) {
 	if id == "" {
@@ -68,13 +62,13 @@ func NewProduct(id, name, description string, price float64, stock int, category
 
 // GETTERS
 
-func (p *Product) GetID() string          { return p.id }
-func (p *Product) GetName() string        { return p.name }
-func (p *Product) GetDescription() string { return p.description }
-func (p *Product) GetPrice() float64      { return p.price }
-func (p *Product) GetStock() int          { return p.stock }
-func (p *Product) GetCategory() Category  { return p.category }
-func (p *Product) GetImageURL() string    { return p.imageURL }
+func (p *Product) GetID() string           { return p.id }
+func (p *Product) GetName() string         { return p.name }
+func (p *Product) GetDescription() string  { return p.description }
+func (p *Product) GetPrice() float64       { return p.price }
+func (p *Product) GetStock() int           { return p.stock }
+func (p *Product) GetCategory() Category   { return p.category }
+func (p *Product) GetImageURL() string     { return p.imageURL }
 func (p *Product) GetCreatedAt() time.Time { return p.createdAt }
 
 // SETTERS
@@ -118,9 +112,7 @@ func (p *Product) SetImageURL(url string) {
 	p.imageURL = url
 }
 
-// ============================================================
-// MÉTODOS DE NEGOCIO (lógica específica del dominio)
-// ============================================================
+// MÉTODOS DE NEGOCIO
 
 func (p *Product) IsAvailable() bool {
 	return p.stock > 0
