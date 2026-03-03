@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — FloriLuz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root { --nav-h: 64px; }
+    .admin-wrap   { display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - var(--nav-h)); }
+    .sidebar      { background:var(--ink); padding:1.5rem 1rem; display:flex; flex-direction:column; gap:.35rem; }
+    .sidebar-label{ color:var(--gold); font-size:.72rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; padding:.4rem .8rem; margin-top:.8rem; }
+    .sidebar-link { display:flex; align-items:center; gap:.7rem; padding:.65rem .9rem; border-radius:8px; color:rgba(255,255,255,.55); font-size:.88rem; font-weight:500; cursor:pointer; transition:all .2s; border:none; background:none; width:100%; text-align:left; font-family:'DM Sans',sans-serif; }
+    .sidebar-link:hover  { background:rgba(255,255,255,.08); color:white; }
+    .sidebar-link.active { background:var(--rose); color:white; }
+    .admin-main   { padding:2rem; background:#f7f3f4; }
+    .page         { display:none; }
+    .page.active  { display:block; }
+    .page-header  { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.8rem; flex-wrap:wrap; gap:1rem; }
+    .page-title   { font-family:'Cormorant Garamond',serif; font-size:2rem; font-weight:400; color:var(--ink); margin:0; }
+    .stats        { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:1rem; margin-bottom:2rem; }
+    .stat-card    { background:white; border-radius:12px; padding:1.25rem; border:1px solid var(--border); }
+    .stat-label   { font-size:.72rem; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.07em; }
+    .stat-num     { font-family:'Cormorant Garamond',serif; font-size:2.4rem; font-weight:600; color:var(--rose-deep); line-height:1.1; margin-top:.2rem; }
+    .stat-sub     { font-size:.76rem; color:var(--ink-muted); margin-top:.2rem; }
+    .card         { background:white; border-radius:12px; border:1px solid var(--border); overflow:hidden; }
+    .card-head    { padding:1rem 1.25rem; border-bottom:1px solid var(--border); font-weight:600; color:var(--ink); font-size:.9rem; }
+    table         { width:100%; border-collapse:collapse; }
+    thead         { background:#faf5f6; }
+    th            { padding:.75rem 1rem; text-align:left; font-size:.75rem; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--border); }
+    td            { padding:.8rem 1rem; font-size:.87rem; color:var(--ink); border-bottom:1px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td   { background:#fdf9fa; }
+    .empty-row    { text-align:center; padding:2.5rem; color:var(--ink-muted); }
+    .badge        { display:inline-block; padding:.2rem .65rem; border-radius:50px; font-size:.73rem; font-weight:600; }
+    .b-ok     { background:#e8f5e9; color:#2e7d32; }
+    .b-low    { background:#fff8e1; color:#f57f17; }
+    .b-out    { background:#fde8ea; color:#c62828; }
+    .b-pend   { background:#fff8e1; color:#e65100; }
+    .b-paid   { background:#e8f5e9; color:#2e7d32; }
+    .b-prep   { background:#e3f2fd; color:#1565c0; }
+    .b-ship   { background:#f3e5f5; color:#6a1b9a; }
+    .b-done   { background:#e0f2f1; color:#00695c; }
+    .b-cancel { background:#fde8ea; color:#c62828; }
+    .act-btn  { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; border:1px solid var(--border); background:white; cursor:pointer; font-size:.82rem; transition:all .15s; }
+    .act-btn:hover { background:var(--rose-pale); border-color:var(--rose); }
+    .act-del:hover { background:#fde8ea!important; border-color:#c62828!important; }
+    .overlay  { display:none; position:fixed; inset:0; background:rgba(44,31,34,.45); z-index:800; align-items:center; justify-content:center; padding:1rem; }
+    .overlay.open { display:flex; }
+    .modal    { background:white; border-radius:16px; padding:2rem; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.15); }
+    .modal-title { font-family:'Cormorant Garamond',serif; font-size:1.7rem; color:var(--ink); margin-bottom:1.4rem; }
+    .modal-foot { display:flex; gap:.8rem; margin-top:1.4rem; justify-content:flex-end; }
+    .form-row  { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    label      { display:block; font-size:.8rem; font-weight:600; color:var(--ink-soft); margin-bottom:.4rem; text-transform:uppercase; letter-spacing:.05em; }
+    input,select { width:100%; padding:.65rem .9rem; border:1.5px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.9rem; color:var(--ink); background:white; outline:none; transition:border .15s; box-sizing:border-box; }
+    input:focus,select:focus { border-color:var(--rose); }
+    .form-group { margin-bottom:1rem; }
+    .btn-sm { padding:.5rem 1rem; font-size:.85rem; }
+    @media(max-width:768px){
+      .admin-wrap { grid-template-columns:1fr; }
+      .sidebar { flex-direction:row; flex-wrap:wrap; padding:.8rem; }
+      .sidebar-label { display:none; }
+      .form-row { grid-template-columns:1fr; }
+    }
+  </style>
+  <style>
+    /* LOGIN */
+    #login-screen {
+      position:fixed; inset:0; z-index:9999;
+      background:var(--ink);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .login-box {
+      background:white; border-radius:20px; padding:2.5rem 2rem;
+      width:100%; max-width:380px; text-align:center;
+      box-shadow:0 24px 80px rgba(0,0,0,.35);
+    }
+    .login-logo { font-size:3rem; margin-bottom:.4rem; }
+    .login-title {
+      font-family:'Cormorant Garamond',serif; font-size:2rem;
+      color:var(--ink); margin-bottom:.2rem;
+    }
+    .login-sub { font-size:.85rem; color:var(--ink-muted); margin-bottom:1.8rem; }
+    .login-box input[type=password] {
+      width:100%; padding:.75rem 1rem; border:1.5px solid var(--border);
+      border-radius:10px; font-size:1rem; font-family:'DM Sans',sans-serif;
+      color:var(--ink); outline:none; transition:border .15s; box-sizing:border-box;
+      text-align:center; letter-spacing:.2em;
+    }
+    .login-box input[type=password]:focus { border-color:var(--rose); }
+    .login-btn {
+      width:100%; margin-top:1rem; padding:.75rem; background:var(--rose);
+      color:white; border:none; border-radius:10px; font-size:1rem;
+      font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer;
+      transition:background .2s;
+    }
+    .login-btn:hover { background:var(--rose-deep); }
+    .login-error {
+      color:#c62828; font-size:.82rem; margin-top:.7rem;
+      min-height:1.2rem; font-weight:500;
+    }
+    .login-hint { font-size:.75rem; color:var(--ink-muted); margin-top:1.2rem; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="navbar-brand"><div class="logo-icon">🌸</div>FloriLuz</a>
+  <ul class="navbar-links" id="nav-links">
+    <li><a href="index.html">Tienda</a></li>
+    <li><a href="products.html">Catálogo</a></li>
+    <li><a href="cart.html">Carrito</a></li>
+    <li><a href="admin.html" style="color:var(--rose);font-weight:600">Admin ⚙️</a></li>
+  </ul>
+  <button class="nav-toggle" id="nav-toggle"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- PANTALLA DE LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🌸</div>
+    <div class="login-title">FloriLuz Admin</div>
+    <div class="login-sub">Ingresa la contraseña para continuar</div>
+    <input type="password" id="login-input" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter') checkLogin()">
+    <button class="login-btn" onclick="checkLogin()">Ingresar</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-hint">Panel de administración — solo personal autorizado</div>
+  </div>
+</div>
+
+<div class="admin-wrap" id="admin-wrap" style="display:none">
+  <aside class="sidebar">
+    <div class="sidebar-label">General</div>
+    <button class="sidebar-link active" onclick="nav('dashboard',this)">📊 Dashboard</button>
+    <div class="sidebar-label">Catálogo</div>
+    <button class="sidebar-link" onclick="nav('inventory',this)">📦 Inventario</button>
+    <div class="sidebar-label">Ventas</div>
+    <button class="sidebar-link" onclick="nav('orders',this)">📋 Órdenes</button>
+  </aside>
+
+  <main class="admin-main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h1 class="page-title">Dashboard</h1>
+        <span id="dash-ts" style="font-size:.8rem;color:var(--ink-muted)"></span>
+      </div>
+      <div class="stats">
+        <div class="stat-card"><div class="stat-label">Productos</div><div class="stat-num" id="s-prod">—</div><div class="stat-sub">en catálogo</div></div>
+        <div class="stat-card"><div class="stat-label">Órdenes</div><div class="stat-num" id="s-ord">—</div><div class="stat-sub">totales</div></div>
+        <div class="stat-card"><div class="stat-label">Agotados</div><div class="stat-num" id="s-out">—</div><div class="stat-sub">sin stock</div></div>
+        <div class="stat-card"><div class="stat-label">Stock bajo</div><div class="stat-num" id="s-low">—</div><div class="stat-sub">menos de 5 ud.</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head">Últimas órdenes</div>
+        <div id="recent-orders"><div style="padding:2rem;text-align:center"><div class="loading-spinner" style="margin:0 auto"></div></div></div>
+      </div>
+    </div>
+
+    <!-- INVENTARIO -->
+    <div id="page-inventory" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Inventario</h1>
+        <button class="btn btn-primary btn-sm" onclick="openProdModal(null)">+ Nuevo producto</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+          <tbody id="inv-tbody"><tr><td colspan="5" class="empty-row"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ÓRDENES -->
+    <div id="page-orders" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Órdenes</h1>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>ID</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+          <tbody id="ord-tbody"><tr><td colspan="6" class="empty-row"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL PRODUCTO -->
+<div class="overlay" id="prod-modal">
+  <div class="modal">
+    <div class="modal-title" id="pm-title">Nuevo Producto</div>
+    <input type="hidden" id="pm-id">
+    <div class="form-group"><label>Nombre *</label><input id="pm-name" type="text" placeholder="Lámpara Rosa Romántica"></div>
+    <div class="form-group"><label>Descripción</label><input id="pm-desc" type="text" placeholder="Descripción del producto"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Precio *</label><input id="pm-price" type="number" step="0.01" placeholder="49.99"></div>
+      <div class="form-group"><label>Stock</label><input id="pm-stock" type="number" min="0" placeholder="10"></div>
+    </div>
+    <div class="form-group">
+      <label>Categoría</label>
+      <select id="pm-cat">
+        <option value="rosa">🌹 Rosa</option>
+        <option value="girasol">🌻 Girasol</option>
+        <option value="loto">🪷 Loto</option>
+        <option value="margarita">🌼 Margarita</option>
+      </select>
+    </div>
+    <div class="form-group"><label>URL de imagen</label><input id="pm-img" type="text" placeholder="https://images.unsplash.com/..."></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeProdModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveProduct()">Guardar producto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL STOCK -->
+<div class="overlay" id="stock-modal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-title">Actualizar stock</div>
+    <input type="hidden" id="sm-id">
+    <div class="form-group"><label>Cantidad en stock</label><input id="sm-val" type="number" min="0" placeholder="15"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeStockModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveStock()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api';
+const ADMIN_PASSWORD = 'floriluz2024';
+
+// ── LOGIN ────────────────────────────────────────────────────
+function checkLogin() {
+  const input = document.getElementById('login-input');
+  const error = document.getElementById('login-error');
+  if (input.value === ADMIN_PASSWORD) {
+    sessionStorage.setItem('admin_auth', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-wrap').style.display = 'grid';
+    loadDashboard();
+  } else {
+    error.textContent = 'Contraseña incorrecta. Inténtalo de nuevo.';
+    input.value = '';
+    input.focus();
+    setTimeout(() => { error.textContent = ''; }, 3000);
+  }
+}
+
+// NAVEGACIÓN
+function nav(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'inventory') loadInventory();
+  if (page === 'orders')    loadOrders();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Si ya estaba autenticado en esta sesión, saltar el login
+  if (sessionStorage.getItem('admin_auth') === '1') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-wrap').style.display = 'grid';
+    loadDashboard();
+  } else {
+    setTimeout(() => document.getElementById('login-input').focus(), 100);
+  }
+  document.getElementById('nav-toggle').addEventListener('click', () =>
+    document.getElementById('nav-links').classList.toggle('open'));
+  document.getElementById('prod-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeProdModal(); });
+  document.getElementById('stock-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeStockModal(); });
+});
+
+// DASHBOARD
+async function loadDashboard() {
+  try {
+    const [pr, or] = await Promise.all([
+      fetch(`${API}/inventory`).then(r => r.json()),
+      fetch(`${API}/orders/list`).then(r => r.json())
+    ]);
+    const prods  = pr.data  || [];
+    const orders = or.data  || [];
+    document.getElementById('s-prod').textContent = prods.length;
+    document.getElementById('s-ord').textContent  = orders.length;
+    document.getElementById('s-out').textContent  = prods.filter(p => p.stock === 0).length;
+    document.getElementById('s-low').textContent  = prods.filter(p => p.stock > 0 && p.stock < 5).length;
+    document.getElementById('dash-ts').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-EC');
+
+    const recent = [...orders].reverse().slice(0, 5);
+    const el = document.getElementById('recent-orders');
+    if (!recent.length) {
+      el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-muted)">Aún no hay órdenes 🌸</div>';
+      return;
+    }
+    el.innerHTML = `<table><thead><tr><th>ID</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+      ${recent.map(o => `<tr>
+        <td><strong>${o.id}</strong></td>
+        <td>${o.customer?.name || '—'}</td>
+        <td style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--rose-deep)">$${(o.total||0).toFixed(2)}</td>
+        <td>${statusBadge(o.status)}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  } catch(e) { toast('Error cargando dashboard', 'error'); }
+}
+
+// INVENTARIO
+async function loadInventory() {
+  try {
+    const res   = await fetch(`${API}/inventory`);
+    const json  = await res.json();
+    const prods = json.data || [];
+    const tb = document.getElementById('inv-tbody');
+    if (!prods.length) {
+      tb.innerHTML = '<tr><td class="empty-row" colspan="5">Sin productos en el inventario</td></tr>';
+      return;
+    }
+    tb.innerHTML = prods.map(p => {
+      const sc = p.stock === 0 ? 'b-out' : p.stock < 5 ? 'b-low' : 'b-ok';
+      const sl = p.stock === 0 ? 'Agotado' : p.stock < 5 ? `Solo ${p.stock}` : p.stock;
+      return `<tr>
+        <td>
+          <div style="font-weight:600">${p.name}</div>
+          <div style="font-size:.75rem;color:var(--ink-muted)">${p.id}</div>
+        </td>
+        <td style="text-transform:capitalize">${p.category}</td>
+        <td style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--rose-deep)">$${p.price.toFixed(2)}</td>
+        <td><span class="badge ${sc}">${sl}</span></td>
+        <td>
+          <div style="display:flex;gap:.35rem">
+            <button class="act-btn" title="Editar" onclick='openProdModal(${JSON.stringify(p)})'>✏️</button>
+            <button class="act-btn" title="Editar stock" onclick='openStockModal("${p.id}",${p.stock})'>📦</button>
+            <button class="act-btn act-del" title="Eliminar" onclick='delProduct("${p.id}")'>🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) { toast('Error cargando inventario', 'error'); }
+}
+
+async function delProduct(id) {
+  if (!confirm(`¿Eliminar el producto ${id}? Esta acción no se puede deshacer.`)) return;
+  const res  = await fetch(`${API}/inventory/${id}`, { method: 'DELETE' });
+  const json = await res.json();
+  if (!json.success) { toast(json.error, 'error'); return; }
+  toast('Producto eliminado ✓', 'success');
+  loadInventory(); loadDashboard();
+}
+
+// ÓRDENES
+async function loadOrders() {
+  try {
+    const res    = await fetch(`${API}/orders/list`);
+    const json   = await res.json();
+    const orders = (json.data || []).reverse();
+    const tb = document.getElementById('ord-tbody');
+    if (!orders.length) {
+      tb.innerHTML = '<tr><td class="empty-row" colspan="6">Sin órdenes aún</td></tr>';
+      return;
+    }
+    tb.innerHTML = orders.map(o => `<tr>
+      <td><strong>${o.id}</strong></td>
+      <td>
+        <div style="font-weight:600">${o.customer?.name || '—'}</div>
+        <div style="font-size:.75rem;color:var(--ink-muted)">${o.customer?.email || ''}</div>
+      </td>
+      <td style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--rose-deep)">$${(o.total||0).toFixed(2)}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td style="font-size:.78rem;color:var(--ink-muted)">${fmtDate(o.created_at)}</td>
+      <td>
+        <div style="display:flex;gap:.35rem">
+          ${o.status !== 'entregada' && o.status !== 'cancelada'
+            ? `<button class="act-btn" title="Avanzar estado" onclick='advOrder("${o.id}")'>▶️</button>` : ''}
+          ${o.status !== 'cancelada' && o.status !== 'entregada' && o.status !== 'enviada'
+            ? `<button class="act-btn act-del" title="Cancelar orden" onclick='canOrder("${o.id}")'>✖️</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+  } catch(e) { toast('Error cargando órdenes', 'error'); }
+}
+
+async function advOrder(id) {
+  const res  = await fetch(`${API}/orders/${id}/status`, { method: 'PUT' });
+  const json = await res.json();
+  if (!json.success) { toast(json.error, 'error'); return; }
+  toast(`${id} → ${json.data.status} ✓`, 'success');
+  loadOrders(); loadDashboard();
+}
+
+async function canOrder(id) {
+  if (!confirm(`¿Cancelar la orden ${id}?`)) return;
+  const res  = await fetch(`${API}/orders/${id}/cancel`, { method: 'PUT' });
+  const json = await res.json();
+  if (!json.success) { toast(json.error, 'error'); return; }
+  toast('Orden cancelada ✓', 'success');
+  loadOrders();
+}
+
+// MODALES
+function openProdModal(p) {
+  document.getElementById('pm-title').textContent = p ? 'Editar Producto' : 'Nuevo Producto';
+  document.getElementById('pm-id').value    = p?.id    || '';
+  document.getElementById('pm-name').value  = p?.name  || '';
+  document.getElementById('pm-desc').value  = p?.description || '';
+  document.getElementById('pm-price').value = p?.price || '';
+  document.getElementById('pm-stock').value = p != null ? p.stock : '';
+  document.getElementById('pm-cat').value   = p?.category || 'rosa';
+  document.getElementById('pm-img').value   = p?.image_url || '';
+  document.getElementById('prod-modal').classList.add('open');
+}
+function closeProdModal() { document.getElementById('prod-modal').classList.remove('open'); }
+
+async function saveProduct() {
+  const id   = document.getElementById('pm-id').value;
+  const body = {
+    name:        document.getElementById('pm-name').value.trim(),
+    description: document.getElementById('pm-desc').value.trim(),
+    price:       parseFloat(document.getElementById('pm-price').value),
+    stock:       parseInt(document.getElementById('pm-stock').value) || 0,
+    category:    document.getElementById('pm-cat').value,
+    image_url:   document.getElementById('pm-img').value.trim(),
+  };
+  if (!body.name)  { toast('El nombre es obligatorio', 'error'); return; }
+  if (!body.price) { toast('El precio es obligatorio', 'error'); return; }
+  const url    = id ? `${API}/inventory/${id}` : `${API}/inventory`;
+  const method = id ? 'PUT' : 'POST';
+  const res    = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const json   = await res.json();
+  if (!json.success) { toast(json.error, 'error'); return; }
+  toast(id ? 'Producto actualizado ✓' : 'Producto creado ✓', 'success');
+  closeProdModal();
+  loadInventory(); loadDashboard();
+}
+
+function openStockModal(id, cur) {
+  document.getElementById('sm-id').value  = id;
+  document.getElementById('sm-val').value = cur;
+  document.getElementById('stock-modal').classList.add('open');
+}
+function closeStockModal() { document.getElementById('stock-modal').classList.remove('open'); }
+
+async function saveStock() {
+  const id    = document.getElementById('sm-id').value;
+  const stock = parseInt(document.getElementById('sm-val').value);
+  if (isNaN(stock) || stock < 0) { toast('Stock inválido', 'error'); return; }
+  const res  = await fetch(`${API}/inventory/${id}/stock`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ stock })
+  });
+  const json = await res.json();
+  if (!json.success) { toast(json.error, 'error'); return; }
+  toast('Stock actualizado ✓', 'success');
+  closeStockModal();
+  loadInventory(); loadDashboard();
+}
+
+// UTILS
+function statusBadge(s) {
+  const m = { pendiente:'b-pend', pagada:'b-paid', preparada:'b-prep', enviada:'b-ship', entregada:'b-done', cancelada:'b-cancel' };
+  return `<span class="badge ${m[s]||''}">${s}</span>`;
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-EC', { day:'2-digit', month:'short', year:'numeric' });
+}
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => { el.className = 'toast'; }, 3000);
+}
+</script>
+</body>
+</html>

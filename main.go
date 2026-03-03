@@ -1,44 +1,69 @@
-// main.go - Punto de entrada del sistema e-commerce de Lámparas Florales
-// Este archivo inicializa el servidor HTTP y registra todas las rutas
+// @name: Giuliana Moreta
+// @date: 17/02/2026
+// @Materia: Programación orientada a objetos
+// @Curso: 3er Semestre
+// @Carrera: Ingeniería en Software
 package main
 
 import (
-	"log"
-	"net/http"
-
 	"ecommerce/handlers"
 	"ecommerce/store"
+	"log"
+	"net/http"
+	"os"
 )
 
 func main() {
-	// Inicializamos la tienda (base de datos en memoria con productos de ejemplo)
 	s := store.NewStore()
 	store.SeedProducts(s)
 
-	// Creamos los handlers (controladores) pasándoles la tienda
 	productHandler := handlers.NewProductHandler(s)
 	cartHandler := handlers.NewCartHandler(s)
 	orderHandler := handlers.NewOrderHandler(s)
+	inventoryHandler := handlers.NewInventoryHandler(s)
 
-	// Servir archivos estáticos del frontend (HTML, CSS, JS)
-	fs := http.FileServer(http.Dir("./frontend"))
-	http.Handle("/", fs)
+	// Frontend estático
+	http.Handle("/", http.FileServer(http.Dir("./frontend")))
 
-	// Rutas de la API REST
-	// Productos
+	// ── CATÁLOGO PÚBLICO ─────────────────────────────────────
+	// GET /api/products                → todos los productos
+	// GET /api/products?category=rosa  → filtrar por categoría
+	// GET /api/products/{id}           → un producto
+	// GET /api/products/search?q=texto → búsqueda
+	http.HandleFunc("/api/products/search", inventoryHandler.SearchProducts)
 	http.HandleFunc("/api/products", productHandler.GetAll)
 	http.HandleFunc("/api/products/", productHandler.GetByID)
 
-	// Carrito
+	// ── CARRITO ──────────────────────────────────────────────
 	http.HandleFunc("/api/cart", cartHandler.GetCart)
 	http.HandleFunc("/api/cart/add", cartHandler.AddItem)
 	http.HandleFunc("/api/cart/remove", cartHandler.RemoveItem)
 	http.HandleFunc("/api/cart/clear", cartHandler.ClearCart)
 
-	// Órdenes
+	// ── ÓRDENES ──────────────────────────────────────────────
+	// POST /api/orders               → crear orden
+	// GET  /api/orders/list          → listar todas
+	// GET  /api/orders/{id}          → ver una orden
+	// PUT  /api/orders/{id}/status   → avanzar estado
+	// PUT  /api/orders/{id}/cancel   → cancelar
 	http.HandleFunc("/api/orders", orderHandler.CreateOrder)
 	http.HandleFunc("/api/orders/list", orderHandler.ListOrders)
+	http.HandleFunc("/api/orders/", orderHandler.HandleByID)
 
-	log.Println("Servidor de Lámparas Florales iniciado en http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// ── INVENTARIO (admin) ────────────────────────────────────
+	// GET  /api/inventory            → ver todo el inventario
+	// POST /api/inventory            → crear producto
+	// PUT  /api/inventory/{id}       → editar producto
+	// DELETE /api/inventory/{id}     → eliminar producto
+	// PUT  /api/inventory/{id}/stock → actualizar solo el stock
+	http.HandleFunc("/api/inventory", inventoryHandler.HandleInventory)
+	http.HandleFunc("/api/inventory/", inventoryHandler.HandleByID)
+
+	// Puerto dinámico para Render
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Println("🌸 FloriLuz iniciado en http://localhost:" + port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

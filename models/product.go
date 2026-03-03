@@ -1,9 +1,8 @@
 // @name: Giuliana Moreta
-//@date: 17/02/2026
-//@Materia: Programación orientada a objetos
-//@Curso: 3er Semestre
-//@Carrera: Ingeniería en Software
-
+// @date: 17/02/2026
+// @Materia: Programación orientada a objetos
+// @Curso: 3er Semestre
+// @Carrera: Ingeniería en Software
 package models
 
 import (
@@ -32,8 +31,6 @@ type Product struct {
 	createdAt   time.Time
 }
 
-// CONSTRUCTOR
-
 func NewProduct(id, name, description string, price float64, stock int, category Category, imageURL string) (*Product, error) {
 	if id == "" {
 		return nil, errors.New("el ID no puede estar vacío")
@@ -47,21 +44,14 @@ func NewProduct(id, name, description string, price float64, stock int, category
 	if stock < 0 {
 		return nil, errors.New("el stock no puede ser negativo")
 	}
-
 	return &Product{
-		id:          id,
-		name:        name,
-		description: description,
-		price:       price,
-		stock:       stock,
-		category:    category,
-		imageURL:    imageURL,
-		createdAt:   time.Now(),
+		id: id, name: name, description: description,
+		price: price, stock: stock, category: category,
+		imageURL: imageURL, createdAt: time.Now(),
 	}, nil
 }
 
 // GETTERS
-
 func (p *Product) GetID() string           { return p.id }
 func (p *Product) GetName() string         { return p.name }
 func (p *Product) GetDescription() string  { return p.description }
@@ -72,8 +62,6 @@ func (p *Product) GetImageURL() string     { return p.imageURL }
 func (p *Product) GetCreatedAt() time.Time { return p.createdAt }
 
 // SETTERS
-
-// SetName valida que el nombre no esté vacío antes de asignarlo
 func (p *Product) SetName(name string) error {
 	if name == "" {
 		return errors.New("el nombre no puede estar vacío")
@@ -81,13 +69,7 @@ func (p *Product) SetName(name string) error {
 	p.name = name
 	return nil
 }
-
-// SetDescription no requiere validación especial
-func (p *Product) SetDescription(desc string) {
-	p.description = desc
-}
-
-// SetPrice valida que el precio sea positivo
+func (p *Product) SetDescription(desc string) { p.description = desc }
 func (p *Product) SetPrice(price float64) error {
 	if price <= 0 {
 		return errors.New("el precio debe ser mayor a cero")
@@ -96,33 +78,27 @@ func (p *Product) SetPrice(price float64) error {
 	return nil
 }
 
-// SetCategory valida que la categoría sea una de las permitidas
+func (p *Product) SetStock(stock int) error {
+	if stock < 0 {
+		return errors.New("el stock no puede ser negativo")
+	}
+	p.stock = stock
+	return nil
+}
+
 func (p *Product) SetCategory(cat Category) error {
 	switch cat {
 	case CategoryRose, CategorySunflower, CategoryLotus, CategoryDaisy:
 		p.category = cat
 		return nil
-	default:
-		return errors.New("categoría inválida: " + string(cat))
 	}
+	return errors.New("categoría inválida: " + string(cat))
 }
-
-// SetImageURL asigna la URL de la imagen
-func (p *Product) SetImageURL(url string) {
-	p.imageURL = url
-}
+func (p *Product) SetImageURL(url string) { p.imageURL = url }
 
 // MÉTODOS DE NEGOCIO
-
-func (p *Product) IsAvailable() bool {
-	return p.stock > 0
-}
-
-func (p *Product) IsAvailableQty(qty int) bool {
-	return p.stock >= qty
-}
-
-// DecreaseStock descuenta stock al vender — con validación
+func (p *Product) IsAvailable() bool           { return p.stock > 0 }
+func (p *Product) IsAvailableQty(qty int) bool { return p.stock >= qty }
 func (p *Product) DecreaseStock(qty int) error {
 	if qty <= 0 {
 		return errors.New("la cantidad debe ser positiva")
@@ -133,8 +109,6 @@ func (p *Product) DecreaseStock(qty int) error {
 	p.stock -= qty
 	return nil
 }
-
-// IncreaseStock agrega stock (reabastecimiento o devolución)
 func (p *Product) IncreaseStock(qty int) error {
 	if qty <= 0 {
 		return errors.New("la cantidad debe ser positiva")
@@ -142,14 +116,7 @@ func (p *Product) IncreaseStock(qty int) error {
 	p.stock += qty
 	return nil
 }
-
-// FormattedPrice retorna el precio con formato de moneda
-func (p *Product) FormattedPrice() string {
-	return fmt.Sprintf("$%.2f", p.price)
-}
-
-// MarshalJSON — necesario para que encoding/json pueda
-// serializar los campos privados al responder la API
+func (p *Product) FormattedPrice() string { return fmt.Sprintf("$%.2f", p.price) }
 
 func (p *Product) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(
