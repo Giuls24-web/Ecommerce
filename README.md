@@ -1,6 +1,6 @@
-# E-Commerce de Lámparas Florales
+# 🌸 FloriLuz — E-Commerce de Lámparas Florales
 
-Sistema de e-commerce desarrollado en **Go** como proyecto académico de Programación Orientada a Objetos. Permite navegar un catálogo de lámparas florales, agregarlas al carrito y realizar pedidos.
+Sistema de e-commerce desarrollado en **Go** como proyecto académico de Programación Orientada a Objetos. Permite navegar un catálogo de lámparas florales, agregarlas al carrito, realizar pedidos y administrar el inventario desde un panel protegido.
 
 ---
 
@@ -11,7 +11,8 @@ Sistema de e-commerce desarrollado en **Go** como proyecto académico de Program
 | Frontend | HTML + CSS + JavaScript | Interfaz visual. Sin frameworks externos |
 | Backend | Go (librería estándar) | Servidor HTTP y lógica de negocio |
 | Datos | Memoria RAM | Sin base de datos externa. Los datos viven en memoria mientras el servidor está activo |
-| Comunicación | HTTP / JSON | El navegador se comunica con Go mediante peticiones fetch() |
+| Comunicación | HTTP / JSON | El navegador se comunica con Go mediante peticiones `fetch()` |
+| Despliegue | Docker + Render.com | Imagen multi-stage. Puerto dinámico via variable de entorno `PORT` |
 
 ---
 
@@ -19,29 +20,32 @@ Sistema de e-commerce desarrollado en **Go** como proyecto académico de Program
 
 ```
 ecommerce/
-├── main.go                  → punto de entrada, arranca el servidor
-├── go.mod                   → configuración del módulo Go
+├── main.go                    → punto de entrada, arranca el servidor (17 rutas registradas)
+├── go.mod                     → módulo Go — 0 dependencias externas
+├── Dockerfile                 → imagen multi-stage para despliegue en producción
 │
-├── models/                  → CLASES del sistema (POO)
-│   ├── product.go           → clase Product
-│   ├── cart.go              → clases CartItem y Cart
-│   ├── customer.go          → clase Customer
-│   └── order.go             → clase Order
+├── models/                    → CLASES del sistema (POO)
+│   ├── product.go             → clase Product + tipo Category
+│   ├── cart.go                → clases CartItem y Cart
+│   ├── customer.go            → clase Customer
+│   └── order.go               → clase Order + tipo OrderStatus
 │
-├── store/                   → base de datos en memoria
-│   └── store.go
+├── store/
+│   └── store.go               → base de datos en memoria (sync.Mutex, CRUD completo)
 │
-├── handlers/                → controladores HTTP
-│   ├── helpers.go           → funciones auxiliares compartidas
-│   ├── product_handler.go
-│   ├── cart_handler.go
-│   └── order_handler.go
+├── handlers/                  → controladores HTTP
+│   ├── helpers.go             → respondJSON, respondError, CORS headers
+│   ├── product_handler.go     → catálogo público
+│   ├── cart_handler.go        → carrito de compras
+│   ├── order_handler.go       → órdenes + máquina de estados
+│   └── inventory_handler.go   → CRUD de inventario (panel admin)
 │
-└── frontend/                → interfaz visual
-    ├── index.html           → página de inicio
-    ├── products.html        → catálogo completo
-    ├── cart.html            → carrito y checkout
-    └── style.css            → estilos
+└── frontend/                  → interfaz visual
+    ├── index.html             → página de inicio con catálogo destacado
+    ├── products.html          → catálogo completo con búsqueda y filtros
+    ├── cart.html              → carrito y checkout
+    ├── admin.html             → panel de administración (protegido con contraseña)
+    └── style.css              → estilos con variables CSS, diseño responsive
 ```
 
 ---
@@ -57,6 +61,10 @@ go run main.go
 
 # 3. Abrir en el navegador
 # http://localhost:8080
+
+# Panel de administración:
+# http://localhost:8080/admin.html
+# Contraseña: floriluz2024
 
 # Para detener: Ctrl + C
 ```
@@ -140,6 +148,7 @@ Valida todos los campos antes de crear. Retorna `error` si algo es inválido.
 | `SetName(name string)` | `error` | No puede estar vacío |
 | `SetDescription(desc string)` | `void` | Sin validación especial |
 | `SetPrice(price float64)` | `error` | Debe ser mayor a cero |
+| `SetStock(stock int)` | `error` | No puede ser negativo |
 | `SetCategory(cat Category)` | `error` | Debe ser una de las 4 categorías válidas |
 | `SetImageURL(url string)` | `void` | Sin validación especial |
 
@@ -153,11 +162,6 @@ Valida todos los campos antes de crear. Retorna `error` si algo es inválido.
 | `IncreaseStock(qty int)` | `error` | Agrega stock (devoluciones / reabastecimiento) |
 | `FormattedPrice()` | `string` | Precio formateado: `"$49.99"` |
 | `MarshalJSON()` | `[]byte, error` | Serializa campos privados a JSON para la API |
-
-**Relaciones:**
-- `CartItem` copia el ID, nombre y precio de `Product` al agregar al carrito
-- `Cart.AddItem()` recibe un `*Product` para validar stock
-- `Store` guarda todos los productos en `map[string]*Product`
 
 ---
 
@@ -201,10 +205,6 @@ Llama internamente a cada setter. La validación queda centralizada en los sette
 | `FullInfo() string` | Resumen: `"nombre <email> — dirección, ciudad"` |
 | `MarshalJSON()` | Serializa campos privados a JSON |
 | `UnmarshalJSON(data []byte)` | Deserializa el JSON que llega del formulario del frontend |
-
-**Relaciones:**
-- `Order` contiene un `Customer` completo por composición
-- `OrderHandler` crea el `Customer` con `NewCustomer()` al recibir el formulario
 
 ---
 
@@ -268,11 +268,6 @@ Contenedor de múltiples CartItems.
 | `IsEmpty()` | `bool` | `true` si no hay ítems |
 | `MarshalJSON()` | `[]byte, error` | Serializa todo el carrito a JSON |
 
-**Relaciones:**
-- `Cart` contiene múltiples `CartItem` (composición)
-- `Cart.AddItem()` usa `Product` para validar stock antes de agregar
-- `Order` copia los `Items` de `Cart` al confirmarse la compra
-
 ---
 
 ### 📋 Order — `models/order.go`
@@ -296,8 +291,8 @@ const (
 **Máquina de estados:**
 ```
 pendiente → pagada → preparada → enviada → entregada
-    │                                        (fin)
-    └──────────────── cancelada ◄────────────────
+    │           │         │                  (fin)
+    └───────────┴─────────┴──── cancelada
                (desde cualquier estado antes de enviada)
 ```
 
@@ -341,11 +336,6 @@ Valida cliente y carrito. Copia los ítems del carrito (la orden es independient
 | `Summary()` | `string` | Resumen: `"Orden #ORD-0001 | Cliente | $49.99 | pendiente"` |
 | `MarshalJSON()` | `[]byte, error` | Serializa todos los campos privados incluyendo customer e items |
 
-**Relaciones:**
-- Contiene `Customer` por composición
-- Contiene `[]CartItem` por composición (copia independiente)
-- Es creada y almacenada por `Store`
-
 ---
 
 ## 🗄 Store — `store/store.go`
@@ -360,13 +350,14 @@ Base de datos en memoria. Todos los handlers comparten la misma instancia del St
 | `products` | `map[string]*Product` | Catálogo de productos indexado por ID |
 | `cart` | `*Cart` | El carrito activo |
 | `orders` | `map[string]*Order` | Historial de órdenes indexado por ID |
-| `orderSeq` | `int` | Contador para generar IDs: ORD-0001, ORD-0002... |
+| `orderSeq` | `int` | Contador para IDs de órdenes: ORD-0001, ORD-0002... |
+| `prodSeq` | `int` | Contador para IDs de productos: lamp-007, lamp-008... |
 
-**Métodos de productos:** `AddProduct`, `GetProduct`, `GetAllProducts`, `GetProductsByCategory`
+**Métodos de productos:** `AddProduct`, `CreateProduct`, `UpdateProduct`, `DeleteProduct`, `GetProduct`, `GetAllProducts`, `GetProductsByCategory`, `SearchProducts`, `UpdateStock`
 
 **Métodos del carrito:** `GetCart`, `AddToCart`, `RemoveFromCart`, `ClearCart`
 
-**Métodos de órdenes:** `CreateOrder`, `GetOrder`, `GetAllOrders`
+**Métodos de órdenes:** `CreateOrder`, `GetOrder`, `GetAllOrders`, `AdvanceOrderStatus`, `CancelOrder`
 
 **Flujo de `CreateOrder` (el más importante):**
 1. Verifica que el carrito no esté vacío
@@ -380,18 +371,44 @@ Base de datos en memoria. Todos los handlers comparten la misma instancia del St
 
 ---
 
-## 🌐 API REST — Endpoints
+## 🌐 API REST — 17 Endpoints
 
-| Método | Ruta | Handler | Descripción |
-|--------|------|---------|-------------|
-| GET | `/api/products` | `ProductHandler.GetAll` | Todos los productos. Acepta `?category=rosa` |
-| GET | `/api/products/{id}` | `ProductHandler.GetByID` | Un producto por ID |
-| GET | `/api/cart` | `CartHandler.GetCart` | Estado actual del carrito |
-| POST | `/api/cart/add` | `CartHandler.AddItem` | Body: `{"product_id":"lamp-001","quantity":2}` |
-| POST | `/api/cart/remove` | `CartHandler.RemoveItem` | Body: `{"product_id":"lamp-001"}` |
-| POST | `/api/cart/clear` | `CartHandler.ClearCart` | Vacía el carrito |
-| POST | `/api/orders` | `OrderHandler.CreateOrder` | Crea una orden con datos del cliente |
-| GET | `/api/orders/list` | `OrderHandler.ListOrders` | Lista todas las órdenes |
+### Catálogo público
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/products` | Todos los productos. Acepta `?category=rosa` |
+| GET | `/api/products/{id}` | Un producto por ID |
+| GET | `/api/products/search?q=` | Búsqueda por nombre, descripción o categoría |
+
+### Carrito
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/cart` | Estado actual del carrito |
+| POST | `/api/cart/add` | Body: `{"product_id":"lamp-001","quantity":2}` |
+| POST | `/api/cart/remove` | Body: `{"product_id":"lamp-001"}` |
+| POST | `/api/cart/clear` | Vacía el carrito |
+
+### Órdenes
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/api/orders` | Crea una orden con datos del cliente |
+| GET | `/api/orders/list` | Lista todas las órdenes |
+| GET | `/api/orders/{id}` | Consulta una orden específica |
+| PUT | `/api/orders/{id}/status` | Avanza al siguiente estado |
+| PUT | `/api/orders/{id}/cancel` | Cancela la orden |
+
+### Inventario (admin)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/inventory` | Lista todo el inventario con stocks |
+| POST | `/api/inventory` | Crea un producto nuevo (ID autogenerado) |
+| PUT | `/api/inventory/{id}` | Edita un producto existente |
+| DELETE | `/api/inventory/{id}` | Elimina un producto |
+| PUT | `/api/inventory/{id}/stock` | Actualiza solo el stock |
 
 **Formato de respuesta (siempre el mismo):**
 ```json
@@ -408,10 +425,21 @@ Base de datos en memoria. Todos los handlers comparten la misma instancia del St
 
 | Archivo | Descripción |
 |---------|-------------|
-| `index.html` | Página principal con hero y catálogo. Filtra por categoría |
-| `products.html` | Catálogo completo con tabs de categorías |
+| `index.html` | Página principal con hero y catálogo destacado |
+| `products.html` | Catálogo completo con búsqueda en tiempo real y tabs de categorías |
 | `cart.html` | Carrito con formulario de checkout. Muestra 4 estados: cargando, vacío, con ítems, orden confirmada |
+| `admin.html` | Panel de administración protegido con contraseña. Dashboard, CRUD de inventario y gestión de órdenes |
 | `style.css` | Estilos con variables CSS, navbar sticky con efecto glass, responsive completo |
+
+### Panel de Administración
+
+Accesible en `/admin.html`. Requiere contraseña (`floriluz2024`). Incluye:
+
+- **Dashboard** — estadísticas en tiempo real: total de productos, órdenes, productos agotados y stock bajo
+- **Inventario** — tabla completa con badges de stock. Permite crear, editar, actualizar stock y eliminar productos
+- **Órdenes** — tabla con todas las órdenes. Botón para avanzar estado (▶) y cancelar (✖)
+
+La autenticación usa `sessionStorage`: al cerrar la pestaña o el navegador, se pide la contraseña nuevamente.
 
 ---
 
@@ -431,7 +459,23 @@ Base de datos en memoria. Todos los handlers comparten la misma instancia del St
 
 ---
 
+## 🐳 Despliegue con Docker
+
+```bash
+# Construir la imagen
+docker build -t floriluz .
+
+# Correr el contenedor
+docker run -p 8080:8080 floriluz
+```
+
+El `Dockerfile` usa multi-stage build: compila el binario en `golang:1.21-alpine` y lo copia a una imagen `alpine` limpia. La imagen final no contiene Go instalado, solo el binario.
+
+Para desplegar en **Render.com**: conectar el repositorio de GitHub, seleccionar Docker como runtime y hacer deploy. El sistema lee el puerto de la variable de entorno `PORT` automáticamente.
+
+---
+
 ## 👩‍💻 Autora
 
 Proyecto desarrollado como parte de la materia de **Programación Orientada a Objetos**  
-Tercer Semestre — UIDE — 2024
+Giuliana Moreta — Tercer Semestre — Ingeniería en Software — UIDE — 2024
