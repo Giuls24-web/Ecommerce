@@ -73,24 +73,155 @@ go run main.go
 
 ## 🧱 Clases del Sistema (POO)
 
-En Go la POO se implementa con `structs` y métodos. La encapsulación se logra escribiendo campos en **minúscula** (privados) y exponiendo **getters** y **setters** públicos (mayúscula).
-
-```
-  ┌─────────────┐              ┌─────────────┐
-  │   Product   │◄─────────── │  CartItem   │
-  └─────────────┘  composición└─────────────┘
-                                      ▲
-  ┌─────────────┐                     │ composición
-  │  Customer   │◄──────── ┌──────────┴──┐
-  └─────────────┘          │    Cart     │
-         ▲                 └─────────────┘
-         │ composición
-  ┌──────┴──────────────┐
-  │        Order        │ (máquina de estados)
-  └─────────────────────┘
-```
+En Go la POO se implementa con `structs` y métodos. La encapsulación se logra escribiendo campos en **minúscula** (privados) y exponiendo **getters** y **setters** públicos (mayúscula). En este proyecto se aplicó POO con **encapsulación**, **constructores con validación**, **composición** y una **máquina de estados** para el flujo de órdenes.
 
 ---
+
+### 🧩 Modelo UML técnico (atributos + métodos + relaciones)
+
+**Convenciones UML**
+- `-` atributo/método privado  
+- `+` método público  
+- Multiplicidades: `1`, `0..1`, `1..*`, `0..*`  
+- Relación:
+  - **◆ composición** (contiene y controla ciclo de vida)
+  - **— asociación** (referencia sin propiedad del ciclo de vida)
+
+---
+
+### 📌 Diagrama de clases (UML ASCII con multiplicidades)
+
+```text
+┌───────────────────────────────┐
+│            Store              │  (1)
+├───────────────────────────────┤
+│ - mu: sync.Mutex              │
+│ - products: map[string]*Prod  │  ◆── (0..*) Product
+│ - cart: *Cart                 │  ◆── (1)    Cart
+│ - orders: map[string]*Order   │  ◆── (0..*) Order
+│ - orderSeq: int               │
+│ - prodSeq: int                │
+├───────────────────────────────┤
+│ + GetAllProducts() []*Product │
+│ + GetProduct(id) (*Product,e) │
+│ + SearchProducts(q) []*Prod   │
+│ + GetProductsByCategory(cat)  │
+│ + CreateProduct(...) (*Prod,e)│
+│ + UpdateProduct(...) (*Prod,e)│
+│ + DeleteProduct(id) error     │
+│ + UpdateStock(id,stock)       │
+│ + GetCart() *Cart             │
+│ + AddToCart(pid,qty) (*Cart,e)│
+│ + RemoveFromCart(pid) (*Cart,e)│
+│ + ClearCart() *Cart           │
+│ + CreateOrder(cust,notes)     │
+│ + GetOrder(id) (*Order,e)     │
+│ + GetAllOrders() []*Order     │
+│ + AdvanceOrderStatus(id)      │
+│ + CancelOrder(id)             │
+└───────────────────────────────┘
+                ◆ (1)
+                │
+                ▼
+┌───────────────────────────────┐
+│             Cart              │  (1)
+├───────────────────────────────┤
+│ - items: []CartItem           │  ◆── (0..*) CartItem
+│ - discount: float64           │
+├───────────────────────────────┤
+│ + AddItem(p *Product,qty) err │
+│ + RemoveItem(productID) err   │
+│ + Subtotal() float64          │
+│ + Total() float64             │
+│ + ItemCount() int             │
+│ + Clear()                     │
+│ + IsEmpty() bool              │
+└───────────────────────────────┘
+                ◆ (0..*)
+                │
+                ▼
+┌───────────────────────────────┐
+│           CartItem            │  (0..*)
+├───────────────────────────────┤
+│ - productID: string           │  — asociación → Product (1)
+│ - productName: string         │
+│ - price: float64 (copia)      │
+│ - quantity: int               │
+│ - imageURL: string            │
+├───────────────────────────────┤
+│ + SetQuantity(qty) error      │
+│ + Subtotal() float64          │
+└───────────────────────────────┘
+                — (1) referencia por ID
+                │
+                ▼
+┌───────────────────────────────┐
+│            Product            │  (0..*)
+├───────────────────────────────┤
+│ - id: string                  │
+│ - name: string                │
+│ - description: string         │
+│ - price: float64              │
+│ - stock: int                  │
+│ - category: Category          │
+│ - imageURL: string            │
+│ - createdAt: time.Time        │
+├───────────────────────────────┤
+│ + SetName(name) error         │
+│ + SetPrice(price) error       │
+│ + SetStock(stock) error       │
+│ + SetCategory(cat) error      │
+│ + DecreaseStock(qty) error    │
+│ + IncreaseStock(qty) error    │
+│ + MarshalJSON() ([]byte,error)│
+└───────────────────────────────┘
+
+
+┌───────────────────────────────┐
+│             Order             │  (0..*)
+├───────────────────────────────┤
+│ - id: string                  │
+│ - customer: Customer          │  ◆── (1) Customer
+│ - items: []CartItem           │  ◆── (1..*) CartItem (copia)
+│ - total: float64              │
+│ - status: OrderStatus         │
+│ - notes: string               │
+│ - createdAt: time.Time        │
+│ - updatedAt: time.Time        │
+├───────────────────────────────┤
+│ + AdvanceStatus() error       │
+│ + Cancel() error              │
+│ + IsCancellable() bool        │
+│ + Summary() string            │
+│ + MarshalJSON() ([]byte,error)│
+└───────────────────────────────┘
+                ◆ (1)
+                │
+                ▼
+┌───────────────────────────────┐
+│           Customer            │  (1)
+├───────────────────────────────┤
+│ - name: string                │
+│ - email: string               │
+│ - phone: string               │
+│ - address: string             │
+│ - city: string                │
+├───────────────────────────────┤
+│ + Validate() error            │
+│ + UnmarshalJSON([]byte) error │
+│ + MarshalJSON() ([]byte,error)│
+└───────────────────────────────┘
+
+Relaciones (resumen):
+- Store (1) ◆── (1) Cart
+- Store (1) ◆── (0..*) Product
+- Store (1) ◆── (0..*) Order
+- Cart  (1) ◆── (0..*) CartItem
+- Order (1) ◆── (1) Customer
+- Order (1) ◆── (1..*) CartItem
+- CartItem (1) —→ (1) Product  (referencia por productID)
+
+```
 
 ### 📦 Product — `models/product.go`
 
@@ -442,6 +573,136 @@ Accesible en `/admin.html`. Requiere contraseña (`floriluz2024`). Incluye:
 La autenticación usa `sessionStorage`: al cerrar la pestaña o el navegador, se pide la contraseña nuevamente.
 
 ---
+
+## 🧪 Pruebas realizadas y resultados
+
+Para validar la calidad del proyecto se realizaron **pruebas funcionales** (API y reglas de negocio) y **pruebas exploratorias de usabilidad** (interfaz). El objetivo fue verificar que el flujo completo del e-commerce sea consistente: **catálogo → carrito → checkout → orden → administración**.
+
+---
+
+### 1 Pruebas de usabilidad (interfaz y experiencia)
+
+> Tipo: **prueba exploratoria** (no es un estudio científico formal).  
+> Objetivo: comprobar que usuarios no técnicos entienden la interfaz y completan tareas reales sin asistencia.
+
+**Participantes**
+- Total: **5 personas** (familiares cercanos)
+- Perfil: usuarios sin experiencia técnica (4) + usuario con experiencia básica (1)
+- Dispositivos: **3 laptop / 2 celular**
+- Duración por participante: **8–12 minutos**
+
+**Escenarios / tareas evaluadas**
+- **T1 — Catálogo**
+  - Entrar a `/products.html`
+  - Filtrar por categoría (ej. “rosa”)
+  - Buscar por palabra clave
+- **T2 — Carrito**
+  - Agregar 2 productos
+  - Aumentar / disminuir cantidad
+  - Eliminar un producto
+- **T3 — Checkout**
+  - Completar datos del cliente
+  - Confirmar orden
+  - Revisar mensaje de confirmación
+- **T4 — Admin**
+  - Entrar a `/admin.html` e ingresar contraseña
+  - Crear un producto
+  - Editar un producto
+  - Avanzar estado de una orden
+  - Cancelar una orden (cuando aplique)
+
+**Métricas y resultados (cuantitativos)**
+
+| Métrica | Resultado |
+|--------|----------|
+| Usuarios que completaron T1 sin ayuda | 5/5 |
+| Usuarios que completaron T2 sin ayuda | 4/5 |
+| Usuarios que completaron T3 sin ayuda | 4/5 |
+| Usuarios que completaron T4 sin ayuda | 3/5 |
+| Tiempo promedio flujo compra (T1–T3) | ~4 min 30 s |
+| Errores más frecuentes | confusión en admin (contraseña/acciones), botón de avanzar estado poco obvio, expectativa de mensaje más visible en carrito vacío |
+
+**Hallazgos (cualitativos)**
+
+**Fortalezas detectadas**
+- La navegación del catálogo fue considerada “clara y rápida”.
+- Las categorías ayudaron a encontrar productos sin leer todo el listado.
+- El carrito mostró correctamente subtotal/total y cantidades.
+
+**Oportunidades de mejora detectadas**
+- En móvil, algunas acciones del admin requerían más scroll.
+- El botón para avanzar estado (▶) no fue intuitivo para 2 participantes.
+- 1 participante intentó comprar con carrito vacío y esperaba un mensaje más visible.
+
+**Mejoras aplicadas a partir del feedback**
+- Mejora de microcopys (mensajes) en acciones inválidas: carrito vacío, stock insuficiente, validaciones de formulario.
+- Mejor feedback visual en admin al crear/editar/eliminar (mensajes de éxito/error).
+- Ajustes de distribución responsive en el panel admin para reducir scroll en móvil.
+
+---
+
+### 2 Pruebas funcionales (API + reglas de negocio)
+
+Objetivo: verificar que la lógica de negocio es consistente y que los endpoints mantienen formato uniforme.
+
+#### 2.1 Validaciones principales verificadas
+
+**Productos (`Product`)**
+- `NewProduct(...)`:
+  - ID obligatorio
+  - nombre obligatorio
+  - precio > 0
+  - stock >= 0
+- `DecreaseStock(qty)`:
+  - qty > 0
+  - no permite vender más del stock disponible
+- `SetCategory(cat)`:
+  - solo permite categorías definidas (`rosa`, `girasol`, `loto`, `margarita`)
+
+**Cliente (`Customer`)**
+- `Validate()`:
+  - nombre, email, address y city obligatorios
+  - email con formato básico (contiene `@` y `.`)
+
+**Orden (`Order`)**
+- `NewOrder(...)`:
+  - no permite crear orden si el carrito está vacío
+  - copia ítems del carrito para mantener historial
+- Máquina de estados:
+  - `AdvanceStatus()` solo permite transiciones válidas
+  - `Cancel()` no permite cancelar si ya está `enviada` o `entregada`
+
+**Store (memoria + concurrencia)**
+- Acceso controlado con `sync.Mutex` para evitar corrupción de datos ante múltiples peticiones.
+
+#### 2.2 Casos de prueba ejecutados (resumen)
+
+| Caso | Entrada | Resultado esperado | Resultado |
+|------|--------|-------------------|----------|
+| Listar catálogo | GET `/api/products` | JSON con lista de productos | OK |
+| Filtrar por categoría | GET `/api/products?category=rosa` | Solo productos categoría rosa | OK |
+| Buscar productos | GET `/api/products/search?q=loto` | Coincidencias por nombre/desc/categoría | OK |
+| Agregar al carrito | POST `/api/cart/add` `{product_id, quantity}` | Carrito con item agregado/sumado | OK |
+| Stock insuficiente | POST add con qty > stock | Error JSON “stock insuficiente” | OK |
+| Checkout válido | POST `/api/orders` con cliente válido | Crea orden, limpia carrito | OK |
+| Checkout carrito vacío | POST `/api/orders` con carrito vacío | Error JSON “carrito vacío” | OK |
+| Avanzar estado | PUT `/api/orders/{id}/status` | Cambia al siguiente estado válido | OK |
+| Cancelación válida | PUT `/api/orders/{id}/cancel` antes de enviado | Estado pasa a `cancelada` | OK |
+| Cancelación inválida | Cancelar cuando ya está `enviada` | Error JSON “no se puede cancelar” | OK |
+| Inventario CRUD | POST/PUT/DELETE `/api/inventory` | Cambios reflejados en catálogo | OK |
+
+#### 2.3 Resultado técnico final
+- La API mantuvo el formato estándar:
+  - Éxito: `{ "success": true, "data": ... }`
+  - Error: `{ "success": false, "error": "..." }`
+- Todas las validaciones respondieron con errores descriptivos.
+- El Store en memoria no presentó inconsistencias durante pruebas con peticiones repetidas (por uso de `sync.Mutex`).
+
+---
+
+### 3 Conclusión de pruebas
+
+Las pruebas confirmaron que el sistema es funcional y comprensible para usuarios no técnicos. El flujo principal del e-commerce se completó de forma exitosa en la mayoría de casos, y los ajustes aplicados mejoraron la claridad del panel admin y los mensajes de error/estado.
 
 ## ✅ Conceptos de POO Aplicados
 
