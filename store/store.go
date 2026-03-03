@@ -276,12 +276,12 @@ func SeedProducts(s *Store) {
 		stock               int
 		cat                 models.Category
 	}{
-		{"lamp-001", "Lámpara Rosa Romántica", "Elegante lámpara con pétalos de rosa en porcelana fría, luz cálida LED.", "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", 49.99, 15, models.CategoryRose},
-		{"lamp-002", "Lámpara Girasol Primaveral", "Lámpara de pie con pétalos de resina dorada inspirada en el girasol.", "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400", 89.99, 8, models.CategorySunflower},
-		{"lamp-003", "Lámpara Loto Zen", "Lámpara de ambiente con flor de loto. Emite luz suave y relajante.", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400", 65.00, 12, models.CategoryLotus},
-		{"lamp-004", "Lámpara Margarita Alegre", "Lámpara infantil multicolor con forma de margarita. Segura para niños.", "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400", 35.50, 20, models.CategoryDaisy},
-		{"lamp-005", "Lámpara Rosa Vintage", "Lámpara colgante estilo vintage con motivos de rosas antiguas.", "https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=400", 75.00, 6, models.CategoryRose},
-		{"lamp-006", "Lámpara Girasol Mini", "Mini lámpara de escritorio con diseño de girasol.", "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=400", 28.99, 25, models.CategorySunflower},
+		{"lamp-001", "Lámpara Rosa Romántica", "Elegante lámpara con pétalos de rosa en porcelana fría, luz cálida LED.", "https://ae-pic-a1.aliexpress-media.com/kf/S6ebe3a25682d48b89b35f6e3bb076b94n.jpg", 49.99, 15, models.CategoryRose},
+		{"lamp-002", "Lámpara Girasol Primaveral", "Lámpara de pie con pétalos de resina dorada inspirada en el girasol.", "https://m.media-amazon.com/images/I/714va40GMVL._AC_UF894,1000_QL80_.jpg", 89.99, 8, models.CategorySunflower},
+		{"lamp-003", "Lámpara Loto Zen", "Lámpara de ambiente con flor de loto. Emite luz suave y relajante.", "https://fbi.cults3d.com/uploaders/13250808/illustration-file/af0b4eb2-4646-4c4a-abdf-93f4102bfa6a/20190703_154012.jpg", 65.00, 12, models.CategoryLotus},
+		{"lamp-004", "Lámpara Margarita Alegre", "Lámpara infantil multicolor con forma de margarita. Segura para niños.", "https://m.media-amazon.com/images/I/7118glO8BBL._AC_UF894,1000_QL80_.jpg", 35.50, 20, models.CategoryDaisy},
+		{"lamp-005", "Lámpara Rosa Vintage", "Lámpara colgante estilo vintage con motivos de rosas antiguas.", "https://image.made-in-china.com/202f0j00hHaGlIVJEykm/LED-Rose-Silicone-Table-Lamp-USB-Rechargeable-Romantic-Lamp.webp", 75.00, 6, models.CategoryRose},
+		{"lamp-006", "Lámpara Girasol Mini", "Mini lámpara de escritorio con diseño de girasol.", "https://m.media-amazon.com/images/I/71PG1-EI8XL._AC_SL1500_.jpg", 28.99, 25, models.CategorySunflower},
 	}
 	for _, d := range items {
 		p, err := models.NewProduct(d.id, d.name, d.desc, d.price, d.stock, d.cat, d.img)
